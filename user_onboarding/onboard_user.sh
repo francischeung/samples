@@ -19,7 +19,7 @@ helpFunction()
 while getopts "u:g:" opt
 do
    case "$opt" in
-      m ) userid="$OPTARG" ;;
+      u ) userid="$OPTARG" ;;
       g ) groupname="$OPTARG" ;;
       ? ) helpFunction ;; # Print helpFunction in case parameter is non-existent
    esac
@@ -38,10 +38,10 @@ fi
 
 . serviceprincipalcreds.config
 
-#echo "using the following credentials to login:" "$clientid" "$clientsecret" "$tenantid"
+echo "using the following credentials to login:" "$clientid" "$clientsecret" "$tenantid"
 az login --service-principal -u "$clientid" -p "$clientsecret" --tenant "$tenantid"
 
 userObjId=$(az ad user show --id "$userid" -o json --query objectId)
-#echo "$userObjId"
+echo "Adding user objectId: ($userObjId) to group: ($groupname)"
 
 az ad group member add --group $groupname --member-id $userObjId
