@@ -10,6 +10,7 @@ namespace ProofOfConcept.DatabricksAutomationFunction
     {
         public override void Configure(IFunctionsHostBuilder builder)
         {
+            builder.Services.AddHttpClient();
             builder.Services.AddSingleton<IUserGroupRepository, UserGroupRepository>();
             builder.Services.AddSingleton<IDatabricksWorkspaceConfigRepository, DatabricksWorkspaceLocalConfigRepository>();
             builder.Services.AddSingleton<IDatabricksAutomationService, DatabricksAutomationService>();

@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Threading.Tasks;
 using Microsoft.Azure.WebJobs;
-using Microsoft.Azure.WebJobs.Host;
 using Microsoft.Extensions.Logging;
 using ProofOfConcept.DatabricksAutomationFunction.Models;
 using ProofOfConcept.DatabricksAutomationFunction.Services;
@@ -38,11 +37,11 @@ namespace ProofOfConcept.DatabricksAutomationFunction
                 foreach (var groupConfiguration in workspaceConfiguration.groups)
                 {
                     var group = await userGroupRepository.GetGroupMembershipAsync(groupConfiguration.AADGroupName);
-                    databricksAutomationService.SynchronizeGroup(groupConfiguration, group);
+                    await databricksAutomationService.SynchronizeGroupAsync(groupConfiguration, group);
 
                     groups.Add(group);
                 }
-                databricksAutomationService.RemoveOrphanUsers(databricksAutomationService.GetUserList(groups), workspaceConfiguration);
+                await databricksAutomationService.RemoveOrphanUsersAsync(databricksAutomationService.GetUserList(groups), workspaceConfiguration);
             }
         }
     }

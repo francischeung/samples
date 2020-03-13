@@ -20,7 +20,7 @@ namespace ProofOfConcept.DatabricksAutomationFunction.Services
 
         public async Task<ICollection<WorkspaceConfiguration>> GetWorkspaceConfigurationsAsync(ExecutionContext context)
         {
-            log.LogCritical("In GetWorkspaceConfigurationsAsync");
+            //TODO: replace this with a GET request to GitHub/GitLab
 
             var configurationFile = Path.Combine(context.FunctionAppDirectory, "databricks_automation.json");
             log.LogInformation($"configuration file: {configurationFile}");

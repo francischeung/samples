@@ -19,9 +19,9 @@ namespace ProofOfConcept.DatabricksAutomationFunction.Services
         public UserGroupRepository(IConfiguration configuration, ILogger<UserGroupRepository> log)
         {
             this.log = log;
-            clientId = configuration["ClientId"];
-            tenantId = configuration["TenantId"];
-            clientSecret = configuration["ClientSecret"];
+            this.clientId = configuration["ClientId"];
+            this.tenantId = configuration["TenantId"];
+            this.clientSecret = configuration["ClientSecret"];
         }
 
         public async Task<Models.Group> GetGroupMembershipAsync(string aADGroupName)
@@ -36,7 +36,6 @@ namespace ProofOfConcept.DatabricksAutomationFunction.Services
                 .Build();
 
             var authProvider = new ClientCredentialProvider(confidentialClientApplication);
-
             var graphClient = new GraphServiceClient(authProvider);
 
             var options = new List<QueryOption>
@@ -52,9 +51,9 @@ namespace ProofOfConcept.DatabricksAutomationFunction.Services
             if (page == null || page.Count != 1)
                 throw new ArgumentException("Can not find matching group in AAD");
 
-            var selectedGroup = page.CurrentPage[0];
+            var selectedGroup = page[0];
 
-            log.LogInformation($"Found group in AAD: {selectedGroup.Id}");
+            log.LogInformation($"Found group in AAD:{selectedGroup.DisplayName} Id:{selectedGroup.Id}");
 
             var members = await graphClient.Groups[selectedGroup.Id].Members
                 .Request()
@@ -67,6 +66,8 @@ namespace ProofOfConcept.DatabricksAutomationFunction.Services
                 var user = await graphClient.Users[member.Id]
                     .Request()
                     .GetAsync();
+
+                if (user == null) throw new ArgumentNullException($"User not found: {member.Id}");
 
                 group.Users.Add(new Models.User(user.UserPrincipalName, user.DisplayName));
             }
