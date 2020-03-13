@@ -1,0 +1,26 @@
+[
+    {
+        "workspace": "Prod",
+        "groups":[
+            {
+                "AADGroupName": "qtm-prod-workspace-admins",
+                "IsAdmin": true,
+                "Entitlements":[]
+            },
+            {
+                "AADGroupName": "qtm-prod-workspace-data-engineers",
+                "IsAdmin": false,
+                "Entitlements":[
+                    {
+                       "value":"allow-cluster-create"
+                    }
+                  ]
+            },
+            {
+                "AADGroupName": "qtm-prod-workspace-data-explorers",
+                "IsAdmin": false,
+                "Entitlements":[]
+            }
+        ]
+    }
+]
