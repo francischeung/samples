@@ -28,7 +28,7 @@ namespace ProofOfConcept.DatabricksAutomationFunction.Tests
             group2.Users.Add(user1);
             group2.Users.Add(user3);
 
-            var users = target.GetUserList(new AADGroup[] { group1, group2 });
+            var users = target.GetFlatUserList(new AADGroup[] { group1, group2 });
 
             Assert.Equal(3, users.Count);
         }

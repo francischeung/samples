@@ -32,16 +32,16 @@ namespace ProofOfConcept.DatabricksAutomationFunction
 
             foreach (var workspaceConfiguration in workspaceConfigurations)
             {
-                var groups = new List<AADGroup>();
+                var aadGroups = new List<AADGroup>();
 
                 foreach (var groupConfiguration in workspaceConfiguration.groups)
                 {
-                    var group = await userGroupRepository.GetGroupMembershipAsync(groupConfiguration.AADGroupName);
-                    await databricksAutomationService.SynchronizeGroupAsync(groupConfiguration, group);
+                    var aadGroup = await userGroupRepository.GetGroupMembershipAsync(groupConfiguration.AADGroupName);
+                    await databricksAutomationService.SynchronizeGroupAsync(groupConfiguration, aadGroup);
 
-                    groups.Add(group);
+                    aadGroups.Add(aadGroup);
                 }
-                await databricksAutomationService.RemoveOrphanUsersAsync(databricksAutomationService.GetUserList(groups), workspaceConfiguration);
+                await databricksAutomationService.RemoveOrphanUsersAsync(databricksAutomationService.GetFlatUserList(aadGroups), workspaceConfiguration);
             }
         }
     }

@@ -8,7 +8,7 @@ namespace ProofOfConcept.DatabricksAutomationFunction.Services
     {
         Task SynchronizeGroupAsync(GroupConfiguration groupConfiguration, AADGroup group);
         Task RemoveOrphanUsersAsync(ICollection<AADUser> users, WorkspaceConfiguration workspaceConfiguration);
-        ICollection<AADUser> GetUserList(ICollection<AADGroup> groups);
+        ICollection<AADUser> GetFlatUserList(ICollection<AADGroup> groups);
 
     }
 }

@@ -100,6 +100,12 @@ namespace ProofOfConcept.DatabricksAutomationFunction.Services
             //response.EnsureSuccessStatusCode();
         }
 
+        private async Task DeleteUserAsync(string userName)
+        {
+            var response = await httpClient.DeleteAsync($"/api/2.0/preview/scim/v2/Users/{userName}");
+            //response.EnsureSuccessStatusCode();
+        }
+
         private async Task CreateUserAsync(string userName)
         {
             var content = new
@@ -131,6 +137,26 @@ namespace ProofOfConcept.DatabricksAutomationFunction.Services
             return databricksGroupMemberList;
         }
 
+        private async Task<ICollection<Tuple<string, string>>> GetAllUsersAsync()
+        {
+            var response = await httpClient.GetAsync($"/api/2.0/preview/scim/v2/Users");
+
+            var listUsersJson = await response.Content.ReadAsStringAsync();
+            dynamic listUsers = JObject.Parse(listUsersJson);
+
+            var databricksUserList = new List<Tuple<string, string>>();
+            if (listUsers.Resources != null)
+            {
+                foreach (var user in listUsers.Resources)
+                {
+                    databricksUserList.Add(Tuple.Create((string)user.userName, (string)user.id));
+                }
+            }
+
+            return databricksUserList;
+        }
+
+
         private async Task CreateGroupAsync(string groupName, GroupConfiguration groupConfiguration)
         {
             var content = new
@@ -146,12 +172,20 @@ namespace ProofOfConcept.DatabricksAutomationFunction.Services
             response.EnsureSuccessStatusCode();
         }
 
-        public async Task RemoveOrphanUsersAsync(ICollection<AADUser> users, WorkspaceConfiguration workspaceConfiguration)
+        public async Task RemoveOrphanUsersAsync(ICollection<AADUser> aadUsers, WorkspaceConfiguration workspaceConfiguration)
         {
-            //throw new NotImplementedException();
+            var databricksUsers = await GetAllUsersAsync();
+
+            foreach (var databricksUser in databricksUsers)
+            {
+                if (aadUsers.FirstOrDefault(u => u.Id == databricksUser.Item1) == null)
+                {
+                    await DeleteUserAsync(databricksUser.Item2);
+                }
+            }
         }
 
-        public ICollection<AADUser> GetUserList(ICollection<AADGroup> aadGroups)
+        public ICollection<AADUser> GetFlatUserList(ICollection<AADGroup> aadGroups)
         {
             var userDictionary = new Dictionary<string, AADUser>();
 
