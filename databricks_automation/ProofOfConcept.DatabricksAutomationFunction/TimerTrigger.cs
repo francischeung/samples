@@ -24,7 +24,7 @@ namespace ProofOfConcept.DatabricksAutomationFunction
         }
 
         [FunctionName("TimerTrigger")]
-        public async Task Run([TimerTrigger("0 */1 * * * *")]TimerInfo myTimer, ExecutionContext executionContext, ILogger log)
+        public async Task Run([TimerTrigger("0 */5 * * * *")]TimerInfo myTimer, ExecutionContext executionContext, ILogger log)
         {
             log.LogInformation($"ProofOfConcept.DatabricksAutomationFunction TimerTrigger function executed at: {DateTime.Now}");
             
@@ -32,7 +32,7 @@ namespace ProofOfConcept.DatabricksAutomationFunction
 
             foreach (var workspaceConfiguration in workspaceConfigurations)
             {
-                var groups = new List<Group>();
+                var groups = new List<AADGroup>();
 
                 foreach (var groupConfiguration in workspaceConfiguration.groups)
                 {

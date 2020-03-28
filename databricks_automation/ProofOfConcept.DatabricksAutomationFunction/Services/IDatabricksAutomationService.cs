@@ -6,9 +6,9 @@ namespace ProofOfConcept.DatabricksAutomationFunction.Services
 {
     public interface IDatabricksAutomationService
     {
-        Task SynchronizeGroupAsync(GroupConfiguration groupConfiguration, Group group);
-        Task RemoveOrphanUsersAsync(ICollection<User> users, WorkspaceConfiguration workspaceConfiguration);
-        ICollection<User> GetUserList(ICollection<Group> groups);
+        Task SynchronizeGroupAsync(GroupConfiguration groupConfiguration, AADGroup group);
+        Task RemoveOrphanUsersAsync(ICollection<AADUser> users, WorkspaceConfiguration workspaceConfiguration);
+        ICollection<AADUser> GetUserList(ICollection<AADGroup> groups);
 
     }
 }

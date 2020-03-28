@@ -2,14 +2,14 @@
 
 namespace ProofOfConcept.DatabricksAutomationFunction.Models
 {
-    public class Group
+    public class AADGroup
     {
-        public Group()
+        public AADGroup()
         {
-            this.Users = new List<User>();
+            this.Users = new List<AADUser>();
         }
 
         public string Name { get; set; }
-        public ICollection<User> Users { get; private set; }
+        public ICollection<AADUser> Users { get; private set; }
     }
 }

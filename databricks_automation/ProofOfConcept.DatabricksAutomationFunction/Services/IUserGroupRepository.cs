@@ -5,6 +5,6 @@ namespace ProofOfConcept.DatabricksAutomationFunction.Services
 {
     public interface IUserGroupRepository
     {
-        Task<Group> GetGroupMembershipAsync(string aADGroupName);
+        Task<AADGroup> GetGroupMembershipAsync(string aADGroupName);
     }
 }

@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
@@ -25,40 +26,48 @@ namespace ProofOfConcept.DatabricksAutomationFunction.Services
             this.httpClient = httpClientFactory.CreateClient("DatabricksInstance");
         }
 
-        public async Task SynchronizeGroupAsync(GroupConfiguration groupConfiguration, Group group)
+        public async Task SynchronizeGroupAsync(GroupConfiguration groupConfiguration, AADGroup aadGroup)
         {
-            string groupName;
+            string databricksGroupName;
             if (groupConfiguration.IsAdmin)
             {
-                groupName = "admins";
+                databricksGroupName = "admins";
             }
             else
             {
-                groupName = group.Name;
+                databricksGroupName = aadGroup.Name;
             }
 
-            var response = await httpClient.GetAsync($"/api/2.0/groups/list-members?group_name={groupName}");
-            
-            if(!response.IsSuccessStatusCode)
+            ICollection<string> databricksGroupMembers;
+            var response = await httpClient.GetAsync($"/api/2.0/groups/list-members?group_name={databricksGroupName}");
+
+            if (!response.IsSuccessStatusCode)
             {
                 //Create group
-                await CreateGroupAsync(group.Name, groupConfiguration);
+                await CreateGroupAsync(databricksGroupName, groupConfiguration);
+                databricksGroupMembers = new List<string>();
             }
             else
             {
-                var databricksGroupMembers = await GetGroupMembersAsync(response);
-                foreach (var user in group.Users)
+                databricksGroupMembers = await GetGroupMembersAsync(response);
+            }
+
+            foreach (var aadUser in aadGroup.Users)
+            {
+                if (!databricksGroupMembers.Contains(aadUser.Id))
                 {
-                    //TODO: handle case where user already a member of group but has different entitlements
-
-                    if (!databricksGroupMembers.Contains(user.Id))
-                    {
-                        //TODO: handle case where user already exists but not in this group
-                        await CreateUserAsync(user.Id);
-                        await AddUserToGroupAsync(user.Id, groupName);
-                    }
+                    await CreateUserAsync(aadUser.Id);
+                    await AddUserToGroupAsync(aadUser.Id, databricksGroupName);
                 }
+            }
 
+            //Remove user if in Databricks group but not in AAD group
+            foreach (var databricksUserId in databricksGroupMembers)
+            {
+                if (aadGroup.Users.FirstOrDefault(u => u.Id == databricksUserId) == null)
+                {
+                    await RemoveUserFromGroupAsync(databricksUserId, databricksGroupName);
+                }
             }
 
         }
@@ -75,6 +84,20 @@ namespace ProofOfConcept.DatabricksAutomationFunction.Services
             jsonContent.Headers.ContentType = new MediaTypeHeaderValue("application/scim+json");
             var response = await httpClient.PostAsync($"/api/2.0/groups/add-member", jsonContent);
             response.EnsureSuccessStatusCode();
+        }
+
+        private async Task RemoveUserFromGroupAsync(string userName, string groupName)
+        {
+            var content = new
+            {
+                user_name = userName,
+                parent_name = groupName
+            };
+
+            var jsonContent = new StringContent(JsonConvert.SerializeObject(content));
+            jsonContent.Headers.ContentType = new MediaTypeHeaderValue("application/scim+json");
+            var response = await httpClient.PostAsync($"/api/2.0/groups/remove-member", jsonContent);
+            //response.EnsureSuccessStatusCode();
         }
 
         private async Task CreateUserAsync(string userName)
@@ -123,18 +146,18 @@ namespace ProofOfConcept.DatabricksAutomationFunction.Services
             response.EnsureSuccessStatusCode();
         }
 
-        public async Task RemoveOrphanUsersAsync(ICollection<User> users, WorkspaceConfiguration workspaceConfiguration)
+        public async Task RemoveOrphanUsersAsync(ICollection<AADUser> users, WorkspaceConfiguration workspaceConfiguration)
         {
             //throw new NotImplementedException();
         }
 
-        public ICollection<User> GetUserList(ICollection<Group> groups)
+        public ICollection<AADUser> GetUserList(ICollection<AADGroup> aadGroups)
         {
-            var userDictionary = new Dictionary<string, User>();
+            var userDictionary = new Dictionary<string, AADUser>();
 
-            foreach (var group in groups)
+            foreach (var aadGroup in aadGroups)
             {
-                foreach (var user in group.Users)
+                foreach (var user in aadGroup.Users)
                 {
                     userDictionary[user.Id] = user;
                 }

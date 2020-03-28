@@ -1,8 +1,8 @@
 ﻿namespace ProofOfConcept.DatabricksAutomationFunction.Models
 {
-    public class User
+    public class AADUser
     {
-        public User(string id, string name)
+        public AADUser(string id, string name)
         {
             this.Id = id;
             this.Name = name;

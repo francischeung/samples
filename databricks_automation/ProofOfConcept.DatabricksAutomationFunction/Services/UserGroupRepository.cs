@@ -24,7 +24,7 @@ namespace ProofOfConcept.DatabricksAutomationFunction.Services
             this.clientSecret = configuration["ClientSecret"];
         }
 
-        public async Task<Models.Group> GetGroupMembershipAsync(string aADGroupName)
+        public async Task<Models.AADGroup> GetGroupMembershipAsync(string aADGroupName)
         {
             //TODO: use MSI to access Graph API
             //https://csharp.hotexamples.com/examples/-/GraphServiceClient/-/php-graphserviceclient-class-examples.html
@@ -59,7 +59,7 @@ namespace ProofOfConcept.DatabricksAutomationFunction.Services
                 .Request()
                 .GetAsync();
 
-            var group = new Models.Group() { Name = aADGroupName };
+            var group = new Models.AADGroup() { Name = aADGroupName };
 
             foreach (var member in members)
             {
@@ -69,7 +69,7 @@ namespace ProofOfConcept.DatabricksAutomationFunction.Services
 
                 if (user == null) throw new ArgumentNullException($"User not found: {member.Id}");
 
-                group.Users.Add(new Models.User(user.UserPrincipalName, user.DisplayName));
+                group.Users.Add(new Models.AADUser(user.UserPrincipalName, user.DisplayName));
             }
 
             return group;
