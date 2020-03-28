@@ -28,7 +28,7 @@ namespace ProofOfConcept.DatabricksAutomationFunction
         {
             log.LogInformation($"ProofOfConcept.DatabricksAutomationFunction TimerTrigger function executed at: {DateTime.Now}");
             
-            var workspaceConfigurations = await databricksWorkspaceConfigRepository.GetWorkspaceConfigurationsAsync(executionContext);
+            var workspaceConfigurations = await databricksWorkspaceConfigRepository.GetWorkspaceConfigurationsAsync();
 
             foreach (var workspaceConfiguration in workspaceConfigurations)
             {

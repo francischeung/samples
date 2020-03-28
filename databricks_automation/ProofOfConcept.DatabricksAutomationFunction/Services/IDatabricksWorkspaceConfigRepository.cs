@@ -7,6 +7,6 @@ namespace ProofOfConcept.DatabricksAutomationFunction.Services
 {
     public interface IDatabricksWorkspaceConfigRepository
     {
-        Task<ICollection<WorkspaceConfiguration>> GetWorkspaceConfigurationsAsync(ExecutionContext executionContext);
+        Task<ICollection<WorkspaceConfiguration>> GetWorkspaceConfigurationsAsync();
     }
 }

@@ -13,22 +13,16 @@ namespace ProofOfConcept.DatabricksAutomationFunction.Services
 {
     public class DatabricksAutomationService : IDatabricksAutomationService
     {
-        private readonly string accessToken;
         private readonly ILogger<DatabricksAutomationService> log;
         private readonly HttpClient httpClient;
 
-        public DatabricksAutomationService(IHttpClientFactory httpClientFactory, 
-                                           IConfiguration configuration, 
+        public DatabricksAutomationService(IHttpClientFactory httpClientFactory,
                                            ILogger<DatabricksAutomationService> log)
         {
             //TODO: Use Token API to generate tokens or fetch from Key Vault
 
             this.log = log;
-            this.httpClient = httpClientFactory.CreateClient();
-            this.httpClient.BaseAddress = new Uri($"https://{configuration["DatabricksInstance"]}");
-            this.httpClient.DefaultRequestHeaders.Authorization =
-                new AuthenticationHeaderValue("Bearer", configuration["AccessToken"]);
-            this.httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/scim+json"));
+            this.httpClient = httpClientFactory.CreateClient("DatabricksInstance");
         }
 
         public async Task SynchronizeGroupAsync(GroupConfiguration groupConfiguration, Group group)
