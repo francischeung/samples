@@ -41,7 +41,13 @@ namespace ProofOfConcept.DatabricksAutomationFunction
 
                     aadGroups.Add(aadGroup);
                 }
-                await databricksAutomationService.RemoveOrphanUsersAsync(databricksAutomationService.GetFlatUserList(aadGroups), workspaceConfiguration);
+
+                var aadUsers = databricksAutomationService.GetFlatUserList(aadGroups);
+                var databricksUsers = await databricksAutomationService.GetDatabricksUsersAsync();
+
+                await databricksAutomationService.RemoveOrphanUsersAsync(aadUsers, databricksUsers);
+
+                await databricksAutomationService.RemoveUserLevelEntitlementsAsync(databricksUsers);
             }
         }
     }

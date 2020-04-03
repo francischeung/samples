@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Dynamic;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Http.Headers;
@@ -137,26 +138,6 @@ namespace ProofOfConcept.DatabricksAutomationFunction.Services
             return databricksGroupMemberList;
         }
 
-        private async Task<ICollection<Tuple<string, string>>> GetAllUsersAsync()
-        {
-            var response = await httpClient.GetAsync($"/api/2.0/preview/scim/v2/Users");
-
-            var listUsersJson = await response.Content.ReadAsStringAsync();
-            dynamic listUsers = JObject.Parse(listUsersJson);
-
-            var databricksUserList = new List<Tuple<string, string>>();
-            if (listUsers.Resources != null)
-            {
-                foreach (var user in listUsers.Resources)
-                {
-                    databricksUserList.Add(Tuple.Create((string)user.userName, (string)user.id));
-                }
-            }
-
-            return databricksUserList;
-        }
-
-
         private async Task CreateGroupAsync(string groupName, GroupConfiguration groupConfiguration)
         {
             var content = new
@@ -172,15 +153,13 @@ namespace ProofOfConcept.DatabricksAutomationFunction.Services
             response.EnsureSuccessStatusCode();
         }
 
-        public async Task RemoveOrphanUsersAsync(ICollection<AADUser> aadUsers, WorkspaceConfiguration workspaceConfiguration)
+        public async Task RemoveOrphanUsersAsync(ICollection<AADUser> aadUsers, ICollection<dynamic> databricksUsers)
         {
-            var databricksUsers = await GetAllUsersAsync();
-
             foreach (var databricksUser in databricksUsers)
             {
-                if (aadUsers.FirstOrDefault(u => u.Id == databricksUser.Item1) == null)
+                if (aadUsers.FirstOrDefault(u => u.Id == (string)databricksUser.userName) == null)
                 {
-                    await DeleteUserAsync(databricksUser.Item2);
+                    await DeleteUserAsync((string)databricksUser.id);
                 }
             }
         }
@@ -200,5 +179,48 @@ namespace ProofOfConcept.DatabricksAutomationFunction.Services
             return userDictionary.Values;
         }
 
+        public async Task<ICollection<dynamic>> GetDatabricksUsersAsync()
+        {
+            var response = await httpClient.GetAsync($"/api/2.0/preview/scim/v2/Users");
+
+            var listUsersJson = await response.Content.ReadAsStringAsync();
+            dynamic listUsers = JObject.Parse(listUsersJson);
+
+            var databricksUserList = new List<dynamic>();
+            if (listUsers.Resources != null)
+            {
+                foreach (var user in listUsers.Resources)
+                {
+                    databricksUserList.Add(user);
+                }
+            }
+
+            return databricksUserList;
+        }
+
+        public async Task RemoveUserLevelEntitlementsAsync(ICollection<dynamic> databricksUsers)
+        {
+            foreach (var user in databricksUsers)
+            {
+                if (user.entitlements != null)
+                {
+                    var content = new
+                    {
+                        schemas = new string[] { "urn:ietf:params:scim:api:messages:2.0:PatchOp" },
+                        Operations = new Operation[] { new Operation() { op = "remove", path = "entitlements" } },
+                    };
+
+                    var jsonContent = new StringContent(JsonConvert.SerializeObject(content));
+                    jsonContent.Headers.ContentType = new MediaTypeHeaderValue("application/scim+json"); 
+                    var response = await httpClient.PatchAsync($"/api/2.0/preview/scim/v2/Users/{(string)user.id}", jsonContent);
+                }
+            }
+        }
+    }
+
+    public class Operation
+    {
+        public string op { get; set; }
+        public string path { get; set; }
     }
 }
