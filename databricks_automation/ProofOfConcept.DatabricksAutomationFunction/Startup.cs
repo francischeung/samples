@@ -21,11 +21,15 @@ namespace ProofOfConcept.DatabricksAutomationFunction
                 c.BaseAddress = new Uri(configuration["DatabricksWorkspaceConfigUri"]);
             });
 
-            builder.Services.AddHttpClient("DatabricksInstance", c => 
+            builder.Services.AddHttpClient("AADAuthTokenService", c =>
             {
-                c.BaseAddress = new Uri(configuration["DatabricksInstance"]);
-                c.DefaultRequestHeaders.Authorization =
-                    new AuthenticationHeaderValue("Bearer", configuration["AccessToken"]);
+                c.BaseAddress = new Uri("https://login.microsoftonline.com/" + configuration["TenantId"] + "/oauth2/token");
+                c.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
+            });
+
+            builder.Services.AddHttpClient("DatabricksAPI", c => 
+            {
+                c.BaseAddress = new Uri(configuration["AzureDatabricksBaseAddress"]);
                 c.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/scim+json"));
 
             });

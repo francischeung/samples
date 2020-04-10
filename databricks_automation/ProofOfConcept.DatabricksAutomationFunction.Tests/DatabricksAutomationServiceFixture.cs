@@ -1,8 +1,9 @@
-using ProofOfConcept.DatabricksAutomationFunction.Services;
-using ProofOfConcept.DatabricksAutomationFunction.Models;
 using System.Net.Http;
+using Microsoft.Extensions.Configuration;
 using Moq;
 using Xunit;
+using ProofOfConcept.DatabricksAutomationFunction.Services;
+using ProofOfConcept.DatabricksAutomationFunction.Models;
 
 namespace ProofOfConcept.DatabricksAutomationFunction.Tests
 {
@@ -14,7 +15,7 @@ namespace ProofOfConcept.DatabricksAutomationFunction.Tests
             var httpClientFactory = new Mock<IHttpClientFactory>();
             httpClientFactory.Setup(m => m.CreateClient(It.IsAny<string>())).Returns(new HttpClient());
 
-            var target = new DatabricksAutomationService(httpClientFactory.Object, null);
+            var target = new DatabricksAutomationService(httpClientFactory.Object, new Mock<IConfiguration>().Object, null);
             
             var user1 = new AADUser("user1", "user one");
             var user2 = new AADUser("user2", "user two");
