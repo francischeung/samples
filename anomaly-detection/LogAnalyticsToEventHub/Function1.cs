@@ -48,7 +48,7 @@ namespace LogAnalyticsToEventHub
             var client = new OperationalInsightsDataClient(creds);
             client.WorkspaceId = workspaceId;
 
-            var queryResult = client.Query(kustoQuery, TimeSpan.FromDays(-1));
+            var queryResult = client.Query(kustoQuery);
 
             var connectionStringBuilder = new EventHubsConnectionStringBuilder(configuration["EventHubConnectionString"])
             {
