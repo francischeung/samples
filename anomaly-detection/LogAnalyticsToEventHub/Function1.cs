@@ -57,12 +57,15 @@ namespace LogAnalyticsToEventHub
 
             eventHubClient = EventHubClient.CreateFromConnectionString(connectionStringBuilder.ToString());
 
+            var count = 0;
             foreach (var result in queryResult.Results)
             {
                 //Process the results by sending to Event Hub
                 await eventHubClient.SendAsync(new EventData(Encoding.UTF8.GetBytes(JsonConvert.SerializeObject(result))));
+                count++;
             }
             await eventHubClient.CloseAsync();
+            log.LogInformation($"Sent {count} messages to Event Hub");
         }
     }
 }
