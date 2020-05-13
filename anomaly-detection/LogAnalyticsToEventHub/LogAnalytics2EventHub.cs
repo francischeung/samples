@@ -54,7 +54,13 @@ namespace LogAnalyticsToEventHub
                 if (tableResult?.Result != null)
                 {
                     var entity = (DynamicTableEntity)tableResult.Result;
-                    lastLogTime = entity.Properties[LastLogTableEntityValueName].StringValue;
+                    var savedLogTime = entity.Properties[LastLogTableEntityValueName].StringValue;
+
+                    //Use value saved in Table Storage if it is not older than 1 day.
+                    if (DateTime.Parse(savedLogTime) > DateTime.UtcNow.AddDays(-1))
+                    {
+                        lastLogTime = savedLogTime;
+                    }
                 }
                 else
                 {
