@@ -45,7 +45,7 @@ namespace LogAnalyticsToEventHub
 
             if (await table.CreateIfNotExistsAsync())
             {
-                log.LogInformation($"Created Table named: {LastLogTableName}");
+                log.LogInformation("Created Table named: {LastLogTableName}", LastLogTableName);
             }
 
             if (lastLogTime == null)
@@ -85,7 +85,7 @@ namespace LogAnalyticsToEventHub
             client.WorkspaceId = workspaceId;
 
             kustoQuery = $"{kustoQuery} | where TimeGenerated > datetime({lastLogTime}) | order by TimeGenerated asc";
-            log.LogInformation($"LogAnalytics2EventHub: About to run kusto query: {kustoQuery}");
+            log.LogInformation("LogAnalytics2EventHub: About to run kusto query: {kustoQuery}", kustoQuery);
 
             var queryResult = client.Query(kustoQuery);
 
@@ -117,7 +117,7 @@ namespace LogAnalyticsToEventHub
             await UpdateLastLogTimeAsync(lastLogTime, table);
 
             await eventHubClient.CloseAsync();
-            log.LogInformation($"LogAnalytics2EventHub: Sent {count} messages to Event Hub");
+            log.LogInformation("LogAnalytics2EventHub: Sent {count} messages to Event Hub", count);
         }
 
         private static async Task UpdateLastLogTimeAsync(string lastLogTime, CloudTable table)
