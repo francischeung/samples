@@ -9,13 +9,10 @@ namespace DatabricksJobExecuter
 {
     class Program
     {
-        //static string databricksInstance = "<your databricks workspace>.azuredatabricks.net";
-        //static string personalAccessToken = "<your access token>";
-        //static string clusterId = "<you cluster id>";
-
-        static string databricksInstance = "adb-2171003139430669.9.azuredatabricks.net";
-        static string personalAccessToken = "dapi1b3f73c999b29b34eae8ccefd97ea108";
-        static string clusterId = "0611-165352-drawl804";
+        static string databricksInstance = "<your databricks workspace>.azuredatabricks.net";
+        static string personalAccessToken = "<your access token>";
+        static string clusterId = "<you cluster id>";
+        static int notebookJobId = 0000;
 
         static async Task Main(string[] args)
         {
@@ -27,25 +24,25 @@ namespace DatabricksJobExecuter
             //Console.WriteLine(jobs);
 
             //Create job in Databricks workspace
-            var content = new
-            {
-                name = "Test Job",
-                existing_cluster_id = clusterId,
-                spark_python_task = new
-                {
-                    python_file = "dbfs:/FileStore/tables/script.py",
-                    parameters = new string[] { }
-                },
-            };
+            //var content = new
+            //{
+            //    name = "Test Job",
+            //    existing_cluster_id = clusterId,
+            //    spark_python_task = new
+            //    {
+            //        python_file = "dbfs:/FileStore/tables/script.py",
+            //        parameters = new string[] { }
+            //    },
+            //};
 
-            var jsonContent = new StringContent(JsonConvert.SerializeObject(content));
+            //var jsonContent = new StringContent(JsonConvert.SerializeObject(content));
             //var response = await httpClient.PostAsync($"https://{databricksInstance}/api/2.0/jobs/runs/submit", jsonContent);
             //var response = await httpClient.PostAsync($"https://{databricksInstance}/api/2.0/jobs/create", jsonContent);
 
 
-            var job = new
+            var jobRunRequest = new
             {
-                job_id = 7, //My custom notebook
+                job_id = notebookJobId,
                 notebook_params = new
                 {
                     param1 = 123,
@@ -53,8 +50,8 @@ namespace DatabricksJobExecuter
                 },
             };
 
-            var jobJson = new StringContent(JsonConvert.SerializeObject(job));
-            var jobResponse = await httpClient.PostAsync($"https://{databricksInstance}/api/2.0/jobs/run-now", jobJson);
+            var jobRunRequestJson = new StringContent(JsonConvert.SerializeObject(jobRunRequest));
+            var jobResponse = await httpClient.PostAsync($"https://{databricksInstance}/api/2.0/jobs/run-now", jobRunRequestJson);
             jobResponse.EnsureSuccessStatusCode();
             var jobResponseContent = await jobResponse.Content.ReadAsStringAsync();
             var jobRun = JsonConvert.DeserializeObject<JobRun>(jobResponseContent);
