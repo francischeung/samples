@@ -3,14 +3,19 @@ using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Threading.Tasks;
 using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
 
 namespace DatabricksJobExecuter
 {
     class Program
     {
-        static string databricksInstance = "<your databricks workspace>.azuredatabricks.net";
-        static string personalAccessToken = "<your access token>";
-        static string clusterId = "<you cluster id>";
+        //static string databricksInstance = "<your databricks workspace>.azuredatabricks.net";
+        //static string personalAccessToken = "<your access token>";
+        //static string clusterId = "<you cluster id>";
+
+        static string databricksInstance = "adb-2171003139430669.9.azuredatabricks.net";
+        static string personalAccessToken = "dapi1b3f73c999b29b34eae8ccefd97ea108";
+        static string clusterId = "0611-165352-drawl804";
 
         static async Task Main(string[] args)
         {
@@ -19,7 +24,7 @@ namespace DatabricksJobExecuter
             httpClient.DefaultRequestHeaders.Accept.Add(new MediaTypeWithQualityHeaderValue("application/scim+json"));
 
             var jobs = await httpClient.GetStringAsync($"https://{databricksInstance}/api/2.0/jobs/list");
-            Console.WriteLine(jobs);
+            //Console.WriteLine(jobs);
 
             //Create job in Databricks workspace
             var content = new
@@ -35,9 +40,37 @@ namespace DatabricksJobExecuter
 
             var jsonContent = new StringContent(JsonConvert.SerializeObject(content));
             //var response = await httpClient.PostAsync($"https://{databricksInstance}/api/2.0/jobs/runs/submit", jsonContent);
-            var response = await httpClient.PostAsync($"https://{databricksInstance}/api/2.0/jobs/create", jsonContent);
-            response.EnsureSuccessStatusCode();
+            //var response = await httpClient.PostAsync($"https://{databricksInstance}/api/2.0/jobs/create", jsonContent);
 
+
+            var job = new
+            {
+                job_id = 7, //My custom notebook
+                notebook_params = new
+                {
+                    param1 = 123,
+                    param2 = "foobar"
+                },
+            };
+
+            var jobJson = new StringContent(JsonConvert.SerializeObject(job));
+            var jobResponse = await httpClient.PostAsync($"https://{databricksInstance}/api/2.0/jobs/run-now", jobJson);
+            jobResponse.EnsureSuccessStatusCode();
+            var jobResponseContent = await jobResponse.Content.ReadAsStringAsync();
+            var jobRun = JsonConvert.DeserializeObject<JobRun>(jobResponseContent);
+            
+            bool isPending;
+            JobRunOutput jobRunOutput;
+            
+            do
+            {
+                var runOutput = await httpClient.GetStringAsync($"https://{databricksInstance}/api/2.0/jobs/runs/get-output?run_id={jobRun.RunID}");
+                jobRunOutput = JsonConvert.DeserializeObject<JobRunOutput>(runOutput);
+                isPending = (jobRunOutput.Metadata.State.LifeCycleState == "PENDING");
+                if (isPending) await Task.Delay(60000);//wait 1 minute
+            } while (isPending);
+
+            Console.WriteLine(jobRunOutput.Output.Result);
         }
     }
 }
