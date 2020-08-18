@@ -1,0 +1,171 @@
+{
+    "$schema": "https://schema.management.azure.com/schemas/2019-04-01/deploymentTemplate.json#",
+    "contentVersion": "1.0.0.0",
+    "parameters": {
+        "location": {
+            "type": "string"
+        },
+        "storageAccountName": {
+            "type": "string"
+        },
+        "costCenter": {
+            "type": "string"
+        },
+        "dataZone": {
+            "type": "string"
+        },
+        "department": {
+            "type": "string"
+        },
+        "environment": {
+            "type": "string"
+        },
+        "organization": {
+            "type": "string"
+        },
+        "owner": {
+            "type": "string"
+        },
+        "purpose": {
+            "type": "string"
+        },
+        "subnetResourceId": {
+            "type": "string"
+        },
+        "subnetsToWhitelist": {
+            "type": "array"
+        }
+    },
+    "variables": {
+        "accountType": "Standard_LRS",
+        "kind": "StorageV2",
+        "accessTier": "Hot",
+        "minimumTlsVersion": "TLS1_2",
+        "supportsHttpsTrafficOnly": true,
+        "allowBlobPublicAccess": false,
+        "networkAclsBypass": "Logging, Metrics, AzureServices",
+        "networkAclsDefaultAction": "Deny",
+        "isHnsEnabled": true,
+        "largeFileSharesState": "Disabled",
+        "privateEndpointName": "[concat(parameters('storageAccountName'), 'pvtlink-')]"
+    },
+    "resources": [
+        {
+            "name": "[parameters('storageAccountName')]",
+            "type": "Microsoft.Storage/storageAccounts",
+            "apiVersion": "2019-06-01",
+            "location": "[parameters('location')]",
+            "properties": {
+                "accessTier": "[variables('accessTier')]",
+                "minimumTlsVersion": "[variables('minimumTlsVersion')]",
+                "supportsHttpsTrafficOnly": "[variables('supportsHttpsTrafficOnly')]",
+                "allowBlobPublicAccess": "[variables('allowBlobPublicAccess')]",
+                "networkAcls": {
+                    "bypass": "[variables('networkAclsBypass')]",
+                    "copy": [
+                        {
+                            "name": "virtualNetworkRules",
+                            "count": "[length(parameters('subnetsToWhitelist'))]",
+                            "input": {
+                                "id": "[parameters('subnetsToWhitelist')[copyIndex('virtualNetworkRules')]]",
+                                "action": "Allow",
+                                "state": "Succeeded"
+                            }
+                        }
+                    ],
+                    "defaultAction": "[variables('networkAclsDefaultAction')]",
+                    "ipRules": []
+                },
+                "isHnsEnabled": "[variables('isHnsEnabled')]",
+                "largeFileSharesState": "[variables('largeFileSharesState')]"
+            },
+            "dependsOn": [],
+            "sku": {
+                "name": "[variables('accountType')]"
+            },
+            "kind": "[variables('kind')]",
+            "tags": {
+                "Cost Center": "[parameters('costCenter')]",
+                "Datazone": "[parameters('dataZone')]",
+                "Department": "[parameters('department')]",
+                "Environment": "[parameters('environment')]",
+                "Organization": "[parameters('organization')]",
+                "Owner": "[parameters('owner')]",
+                "Purpose": "[parameters('purpose')]"
+            }
+        },
+        {
+            "location": "[parameters('location')]",
+            "name": "[concat(variables('privateEndpointName'), 'blob')]",
+            "type": "Microsoft.Network/privateEndpoints",
+            "apiVersion": "2020-03-01",
+            "dependsOn": [
+                 "[parameters('storageAccountName')]"
+            ],
+            "properties": {
+                "subnet": {
+                    "id": "[parameters('subnetResourceId')]"
+                },
+                "privateLinkServiceConnections": [
+                    {
+                        "name": "[concat(variables('privateEndpointName'), 'blob')]",
+                        "properties": {
+                            "privateLinkServiceId": "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]",
+                            "groupIds": ["blob"]
+                        }
+                    }
+                ]
+            },
+            "tags": {}
+        },
+        {
+            "location": "[parameters('location')]",
+            "name": "[concat(variables('privateEndpointName'), 'queue')]",
+            "type": "Microsoft.Network/privateEndpoints",
+            "apiVersion": "2020-03-01",
+            "dependsOn": [
+                 "[parameters('storageAccountName')]"
+            ],
+            "properties": {
+                "subnet": {
+                    "id": "[parameters('subnetResourceId')]"
+                },
+                "privateLinkServiceConnections": [
+                    {
+                        "name": "[concat(variables('privateEndpointName'), 'queue')]",
+                        "properties": {
+                            "privateLinkServiceId": "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]",
+                            "groupIds": ["queue"]
+                        }
+                    }
+                ]
+            },
+            "tags": {}
+        },
+        {
+            "location": "[parameters('location')]",
+            "name": "[concat(variables('privateEndpointName'), 'dfs')]",
+            "type": "Microsoft.Network/privateEndpoints",
+            "apiVersion": "2020-03-01",
+            "dependsOn": [
+                 "[parameters('storageAccountName')]"
+            ],
+            "properties": {
+                "subnet": {
+                    "id": "[parameters('subnetResourceId')]"
+                },
+                "privateLinkServiceConnections": [
+                    {
+                        "name": "[concat(variables('privateEndpointName'), 'dfs')]",
+                        "properties": {
+                            "privateLinkServiceId": "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]",
+                            "groupIds": ["dfs"]
+                        }
+                    }
+                ]
+            },
+            "tags": {}
+        }
+    ],
+    "outputs": {}
+}
