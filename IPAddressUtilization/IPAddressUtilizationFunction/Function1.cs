@@ -1,15 +1,12 @@
 using System;
 using System.Collections.Generic;
-using System.Net;
 using System.Net.Http;
 using System.Net.Http.Headers;
 using System.Security.Cryptography;
 using System.Text;
 using System.Threading.Tasks;
-using Microsoft.Azure.Management.Fluent;
 using Microsoft.Azure.Services.AppAuthentication;
 using Microsoft.Azure.WebJobs;
-using Microsoft.Azure.WebJobs.Host;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
@@ -22,6 +19,7 @@ namespace IPAddressUtilizationFunction
         private readonly HttpClient httpClient;
         private readonly IConfiguration configuration;
         private const string azureManagementDomain = "https://management.azure.com";
+
         public Function1(HttpClient httpClient, IConfiguration configuration)
         {
             this.httpClient = httpClient;
@@ -29,7 +27,7 @@ namespace IPAddressUtilizationFunction
         }
 
         [FunctionName("IPAddressUtilizationFunction")]
-        public async Task Run([TimerTrigger("0 */2 * * * *")]TimerInfo myTimer, ILogger log)
+        public async Task Run([TimerTrigger("0 0 0 * * *")]TimerInfo myTimer, ILogger log)
         {
             log.LogInformation($"IPAddressUtilizationFunction C# Timer trigger function executed at: {DateTime.Now}");
 
@@ -38,8 +36,6 @@ namespace IPAddressUtilizationFunction
             var azureServiceTokenProvider = new AzureServiceTokenProvider();
             string accessToken = await azureServiceTokenProvider.GetAccessTokenAsync(azureManagementDomain);
             log.LogCritical($"management.azure.com access token: {accessToken}");
-
-            accessToken = configuration["AccessToken"];
 
             var subscriptionId = configuration["SubscriptionId"];
 
