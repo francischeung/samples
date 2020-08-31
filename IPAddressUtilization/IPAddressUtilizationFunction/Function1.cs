@@ -41,6 +41,7 @@ namespace IPAddressUtilizationFunction
             httpClient.BaseAddress = new Uri(azureManagementDomain);
             httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
 
+            //What VNets do are in this subscription?
             var listVNetsResponse = await httpClient.GetAsync($"/subscriptions/{subscriptionId}/providers/Microsoft.Network/virtualNetworks?api-version=2020-05-01");
             listVNetsResponse.EnsureSuccessStatusCode();
 
@@ -59,6 +60,7 @@ namespace IPAddressUtilizationFunction
                         subnetDictionary[(string)subnet.id] = subnetMetadata;
                     }
 
+                    //What is the VNet/subnet address usage?
                     var listVNetUsageResponse = await httpClient.GetAsync($"{vnet.id}/usages?api-version=2020-05-01");
                     listVNetUsageResponse.EnsureSuccessStatusCode();
 
