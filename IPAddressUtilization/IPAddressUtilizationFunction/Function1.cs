@@ -36,48 +36,53 @@ namespace IPAddressUtilizationFunction
             var azureServiceTokenProvider = new AzureServiceTokenProvider();
             string accessToken = await azureServiceTokenProvider.GetAccessTokenAsync(azureManagementDomain);
 
-            var subscriptionId = configuration["SubscriptionId"];
-
             httpClient.BaseAddress = new Uri(azureManagementDomain);
             httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
-
-            //What VNets do are in this subscription?
-            var listVNetsResponse = await httpClient.GetAsync($"/subscriptions/{subscriptionId}/providers/Microsoft.Network/virtualNetworks?api-version=2020-05-01");
-            listVNetsResponse.EnsureSuccessStatusCode();
-
-            var listVNetsJson = await listVNetsResponse.Content.ReadAsStringAsync();
-            dynamic listVNets = JObject.Parse(listVNetsJson);
-
+            
             var subnetDictionary = new Dictionary<string, SubnetMetadata>();
 
-            if (listVNets.value != null)
+            var subscriptionIds = configuration["SubscriptionIds"].Split(',');
+
+            foreach (var subscriptionId in subscriptionIds)
             {
-                foreach (var vnet in listVNets.value)
+                //What VNets do are in this subscription?
+                var listVNetsResponse = await httpClient.GetAsync($"/subscriptions/{subscriptionId}/providers/Microsoft.Network/virtualNetworks?api-version=2020-05-01");
+                listVNetsResponse.EnsureSuccessStatusCode();
+
+                var listVNetsJson = await listVNetsResponse.Content.ReadAsStringAsync();
+                dynamic listVNets = JObject.Parse(listVNetsJson);
+
+
+                if (listVNets.value != null)
                 {
-                    foreach (var subnet in vnet.properties.subnets)
+                    foreach (var vnet in listVNets.value)
                     {
-                        var subnetMetadata = new SubnetMetadata((string)vnet.name, (string)subnet.name, (string)subnet.id, (string)subnet.properties.addressPrefix);
-                        subnetDictionary[(string)subnet.id] = subnetMetadata;
-                    }
+                        foreach (var subnet in vnet.properties.subnets)
+                        {
+                            var subnetMetadata = new SubnetMetadata((string)vnet.name, (string)subnet.name, (string)subnet.id, (string)subnet.properties.addressPrefix);
+                            subnetDictionary[(string)subnet.id] = subnetMetadata;
+                        }
 
-                    //What is the VNet/subnet address usage?
-                    var listVNetUsageResponse = await httpClient.GetAsync($"{vnet.id}/usages?api-version=2020-05-01");
-                    listVNetUsageResponse.EnsureSuccessStatusCode();
+                        //What is the VNet/subnet address usage?
+                        var listVNetUsageResponse = await httpClient.GetAsync($"{vnet.id}/usages?api-version=2020-05-01");
+                        listVNetUsageResponse.EnsureSuccessStatusCode();
 
-                    var listVNetUsageJson = await listVNetUsageResponse.Content.ReadAsStringAsync();
-                    dynamic listVNetUsage = JObject.Parse(listVNetUsageJson);
+                        var listVNetUsageJson = await listVNetUsageResponse.Content.ReadAsStringAsync();
+                        dynamic listVNetUsage = JObject.Parse(listVNetUsageJson);
 
-                    foreach (var subnetUsage in listVNetUsage.value)
-                    {
-                        var subnetMetadata = subnetDictionary[(string)subnetUsage.id];
-                        subnetMetadata.Size = (int)subnetUsage.limit;
-                        subnetMetadata.Used = (int)subnetUsage.currentValue;
+                        foreach (var subnetUsage in listVNetUsage.value)
+                        {
+                            var subnetMetadata = subnetDictionary[(string)subnetUsage.id];
+                            subnetMetadata.Size = (int)subnetUsage.limit;
+                            subnetMetadata.Used = (int)subnetUsage.currentValue;
+                        }
                     }
                 }
             }
+            
 
-        //Send data to Log Analytics
-        // https://docs.microsoft.com/en-us/azure/azure-monitor/platform/data-collector-api#sample-requests
+            //Send data to Log Analytics
+            // https://docs.microsoft.com/en-us/azure/azure-monitor/platform/data-collector-api#sample-requests
             var sharedKey = configuration["LogAnalyticsWorkspaceSharedKey"];
             var workspaceId = configuration["LogAnalyticsWorkspaceId"];
 
