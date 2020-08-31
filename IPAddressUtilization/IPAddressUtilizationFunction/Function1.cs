@@ -35,7 +35,6 @@ namespace IPAddressUtilizationFunction
 
             var azureServiceTokenProvider = new AzureServiceTokenProvider();
             string accessToken = await azureServiceTokenProvider.GetAccessTokenAsync(azureManagementDomain);
-            log.LogCritical($"management.azure.com access token: {accessToken}");
 
             var subscriptionId = configuration["SubscriptionId"];
 
@@ -91,7 +90,7 @@ namespace IPAddressUtilizationFunction
                 string hashedString = BuildSignature(stringToHash, sharedKey);
                 string signature = "SharedKey " + workspaceId + ":" + hashedString;
 
-                PostData(workspaceId, signature, datestring, json);
+                PostData(workspaceId, signature, datestring, json, log);
             }
         }
 
@@ -109,30 +108,30 @@ namespace IPAddressUtilizationFunction
         }
 
         // Send a request to the POST API endpoint
-        public static void PostData(string workspaceId, string signature, string date, string json)
+        public static void PostData(string workspaceId, string signature, string date, string json, ILogger log)
         {
             try
             {
                 string url = "https://" + workspaceId + ".ods.opinsights.azure.com/api/logs?api-version=2016-04-01";
 
-                System.Net.Http.HttpClient client = new System.Net.Http.HttpClient();
+                HttpClient client = new System.Net.Http.HttpClient();
                 client.DefaultRequestHeaders.Add("Accept", "application/json");
                 client.DefaultRequestHeaders.Add("Log-Type", "IPAddressUtilizationLogs");
                 client.DefaultRequestHeaders.Add("Authorization", signature);
                 client.DefaultRequestHeaders.Add("x-ms-date", date);
                 client.DefaultRequestHeaders.Add("time-generated-field", "");
 
-                System.Net.Http.HttpContent httpContent = new StringContent(json, Encoding.UTF8);
+                HttpContent httpContent = new StringContent(json, Encoding.UTF8);
                 httpContent.Headers.ContentType = new MediaTypeHeaderValue("application/json");
-                Task<System.Net.Http.HttpResponseMessage> response = client.PostAsync(new Uri(url), httpContent);
+                Task<HttpResponseMessage> response = client.PostAsync(new Uri(url), httpContent);
 
-                System.Net.Http.HttpContent responseContent = response.Result.Content;
+                HttpContent responseContent = response.Result.Content;
                 string result = responseContent.ReadAsStringAsync().Result;
-                Console.WriteLine("Return Result: " + result);
+                log.LogInformation("Return Result: {Result}", result);
             }
             catch (Exception excep)
             {
-                Console.WriteLine("API Post Exception: " + excep.Message);
+                log.LogError("API Post Exception: {Exception}", excep);
             }
         }
     }
