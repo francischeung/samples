@@ -16,13 +16,11 @@ namespace IPAddressUtilizationFunction
 {
     public class Function1
     {
-        private readonly HttpClient httpClient;
         private readonly IConfiguration configuration;
         private const string azureManagementDomain = "https://management.azure.com";
 
-        public Function1(HttpClient httpClient, IConfiguration configuration)
+        public Function1(IConfiguration configuration)
         {
-            this.httpClient = httpClient;
             this.configuration = configuration;
         }
 
@@ -36,6 +34,7 @@ namespace IPAddressUtilizationFunction
             var azureServiceTokenProvider = new AzureServiceTokenProvider();
             string accessToken = await azureServiceTokenProvider.GetAccessTokenAsync(azureManagementDomain);
 
+            var httpClient = new HttpClient();
             httpClient.BaseAddress = new Uri(azureManagementDomain);
             httpClient.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
             
@@ -121,7 +120,7 @@ namespace IPAddressUtilizationFunction
             {
                 string url = "https://" + workspaceId + ".ods.opinsights.azure.com/api/logs?api-version=2016-04-01";
 
-                HttpClient client = new System.Net.Http.HttpClient();
+                HttpClient client = new HttpClient();
                 client.DefaultRequestHeaders.Add("Accept", "application/json");
                 client.DefaultRequestHeaders.Add("Log-Type", "IPAddressUtilizationLogs");
                 client.DefaultRequestHeaders.Add("Authorization", signature);
