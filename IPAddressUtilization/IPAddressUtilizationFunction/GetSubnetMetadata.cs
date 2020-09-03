@@ -14,20 +14,20 @@ using Newtonsoft.Json.Linq;
 
 namespace IPAddressUtilizationFunction
 {
-    public class Function1
+    public class GetSubnetMetadata
     {
         private readonly IConfiguration configuration;
         private const string azureManagementDomain = "https://management.azure.com";
 
-        public Function1(IConfiguration configuration)
+        public GetSubnetMetadata(IConfiguration configuration)
         {
             this.configuration = configuration;
         }
 
-        [FunctionName("IPAddressUtilizationFunction")]
-        public async Task Run([TimerTrigger("0 0 0 * * *")]TimerInfo myTimer, ILogger log)
+        [FunctionName("GetSubnetMetadata")]
+        public async Task Run([TimerTrigger("0 */5 * * * *")]TimerInfo myTimer, ILogger log)
         {
-            log.LogInformation($"IPAddressUtilizationFunction C# Timer trigger function executed at: {DateTime.Now}");
+            log.LogInformation($"GetSubnetMetadata C# Timer trigger function executed at: {DateTime.Now}");
 
             //https://docs.microsoft.com/en-us/azure/app-service/overview-managed-identity?tabs=dotnet#obtain-tokens-for-azure-resources
 
@@ -122,7 +122,7 @@ namespace IPAddressUtilizationFunction
 
                 HttpClient client = new HttpClient();
                 client.DefaultRequestHeaders.Add("Accept", "application/json");
-                client.DefaultRequestHeaders.Add("Log-Type", "IPAddressUtilizationLogs");
+                client.DefaultRequestHeaders.Add("Log-Type", "SubnetMetadataLogs");
                 client.DefaultRequestHeaders.Add("Authorization", signature);
                 client.DefaultRequestHeaders.Add("x-ms-date", date);
                 client.DefaultRequestHeaders.Add("time-generated-field", "");
