@@ -63,6 +63,7 @@ namespace IPAddressUtilizationFunction
                         }
 
                         //What is the VNet/subnet address usage?
+                        //https://docs.microsoft.com/en-us/rest/api/virtualnetwork/virtualnetworks/listusage
                         var listVNetUsageResponse = await httpClient.GetAsync($"{vnet.id}/usages?api-version=2020-05-01");
                         listVNetUsageResponse.EnsureSuccessStatusCode();
 
