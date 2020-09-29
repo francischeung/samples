@@ -60,6 +60,32 @@ namespace IPAddressUtilizationFunction
                         foreach (var ipConfiguration in networkInterface.properties.ipConfigurations)
                         {
                             var ipMetadata = new NICMetadata((string)ipConfiguration.id, (string)ipConfiguration.properties.subnet.id, (string)ipConfiguration.properties.privateIPAddress);
+
+                            //Get metrics related to NIC
+                            //https://docs.microsoft.com/en-us/rest/api/monitor/metrics/list
+                            var metricsResponse = await httpClient.GetAsync($"{networkInterface.id}/providers/microsoft.insights/metrics?api-version=2018-01-01&interval=P1D&metricnames=BytesSentRate,BytesReceivedRate");
+                            if (metricsResponse.IsSuccessStatusCode)
+                            {
+                                var nicMetricsJson = await metricsResponse.Content.ReadAsStringAsync();
+                                dynamic nicMetrics = JObject.Parse(nicMetricsJson);
+
+                                foreach (var nicMetric in nicMetrics.value)
+                                {
+                                    var timeSeries = nicMetric.timeseries;
+                                    var timeSeriesArray = (JArray)nicMetric.timeseries;
+
+                                    if (timeSeries != null && timeSeriesArray.Count>0 && timeSeries[0] != null && timeSeries[0].data != null && timeSeries[0].data[0] != null)
+                                    switch ((string)nicMetric.name.value)
+                                    {
+                                        case "BytesSentRate":
+                                            ipMetadata.BytesSent = (double)timeSeries[0].data[0].total;
+                                            break;
+                                        case "BytesReceivedRate":
+                                            ipMetadata.BytesReceived = (double)timeSeries[0].data[0].total;
+                                            break;
+                                    }
+                                }
+                            }
                             nicDictionary[(string)ipConfiguration.id] = ipMetadata;
                         }
                     }

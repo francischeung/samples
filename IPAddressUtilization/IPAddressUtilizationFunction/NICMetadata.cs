@@ -12,5 +12,7 @@
         public string SubnetId { get; set; }
         public string NicId { get; set; }
         public string IpAddress { get; set; }
+        public double BytesSent { get; set; }
+        public double BytesReceived { get; set; }
     }
 }
