@@ -34,6 +34,9 @@
         },
         "subnetsToWhitelist": {
             "type": "array"
+        },
+        "privateEndpointResourceType": {
+            "type": "array"
         }
     },
     "variables": {
@@ -96,7 +99,7 @@
         },
         {
             "location": "[parameters('location')]",
-            "name": "[concat(variables('privateEndpointName'), 'blob')]",
+            "name": "[concat(variables('privateEndpointName'), parameters('privateEndpointResourceType')[copyIndex()])]",
             "type": "Microsoft.Network/privateEndpoints",
             "apiVersion": "2020-03-01",
             "dependsOn": [
@@ -108,63 +111,21 @@
                 },
                 "privateLinkServiceConnections": [
                     {
-                        "name": "[concat(variables('privateEndpointName'), 'blob')]",
+                        "name": "[concat(variables('privateEndpointName'), parameters('privateEndpointResourceType')[copyIndex()])]",
                         "properties": {
                             "privateLinkServiceId": "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]",
-                            "groupIds": ["blob"]
+                            "groupIds": [
+                                 "[parameters('privateEndpointResourceType')[copyIndex()]]"
+                            ]
                         }
                     }
                 ]
             },
-            "tags": {}
-        },
-        {
-            "location": "[parameters('location')]",
-            "name": "[concat(variables('privateEndpointName'), 'queue')]",
-            "type": "Microsoft.Network/privateEndpoints",
-            "apiVersion": "2020-03-01",
-            "dependsOn": [
-                 "[parameters('storageAccountName')]"
-            ],
-            "properties": {
-                "subnet": {
-                    "id": "[parameters('subnetResourceId')]"
-                },
-                "privateLinkServiceConnections": [
-                    {
-                        "name": "[concat(variables('privateEndpointName'), 'queue')]",
-                        "properties": {
-                            "privateLinkServiceId": "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]",
-                            "groupIds": ["queue"]
-                        }
-                    }
-                ]
-            },
-            "tags": {}
-        },
-        {
-            "location": "[parameters('location')]",
-            "name": "[concat(variables('privateEndpointName'), 'dfs')]",
-            "type": "Microsoft.Network/privateEndpoints",
-            "apiVersion": "2020-03-01",
-            "dependsOn": [
-                 "[parameters('storageAccountName')]"
-            ],
-            "properties": {
-                "subnet": {
-                    "id": "[parameters('subnetResourceId')]"
-                },
-                "privateLinkServiceConnections": [
-                    {
-                        "name": "[concat(variables('privateEndpointName'), 'dfs')]",
-                        "properties": {
-                            "privateLinkServiceId": "[resourceId('Microsoft.Storage/storageAccounts', parameters('storageAccountName'))]",
-                            "groupIds": ["dfs"]
-                        }
-                    }
-                ]
-            },
-            "tags": {}
+            "tags": {},
+            "copy": {
+                "name": "privateEndpointCopy",
+                "count": "[length(parameters('privateEndpointResourceType'))]"
+            }
         }
     ],
     "outputs": {}
