@@ -1,0 +1,376 @@
+{
+    "definition": {
+        "$schema": "https://schema.management.azure.com/providers/Microsoft.Logic/schemas/2016-06-01/workflowdefinition.json#",
+        "actions": {
+            "For_each_app_registration": {
+                "actions": {
+                    "Filter_array": {
+                        "inputs": {
+                            "from": "@items('For_each_app_registration')?['passwordCredentials']",
+                            "where": "@less(item()?['endDateTime'], addDays(utcNow(), 490))"
+                        },
+                        "runAfter": {},
+                        "type": "Query"
+                    },
+                    "For_each_passwordCredential": {
+                        "actions": {
+                            "Append_to_array_variable": {
+                                "inputs": {
+                                    "name": "CredsNearExpiration",
+                                    "value": "@outputs('Compose')"
+                                },
+                                "runAfter": {
+                                    "Compose": [
+                                        "Succeeded"
+                                    ]
+                                },
+                                "type": "AppendToArrayVariable"
+                            },
+                            "Compose": {
+                                "inputs": {
+                                    "appId": "@{items('For_each_app_registration')['appId']}",
+                                    "expirationDate": "@{items('For_each_passwordCredential')['endDateTime']}",
+                                    "secretName": "@{items('For_each_passwordCredential')['displayName']}"
+                                },
+                                "runAfter": {},
+                                "type": "Compose"
+                            }
+                        },
+                        "foreach": "@body('Filter_array')",
+                        "runAfter": {
+                            "Filter_array": [
+                                "Succeeded"
+                            ]
+                        },
+                        "type": "Foreach"
+                    }
+                },
+                "foreach": "@body('Parse_JSON')?['value']",
+                "runAfter": {
+                    "Initialize_variable": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "Foreach"
+            },
+            "HTTP": {
+                "inputs": {
+                    "authentication": {
+                        "audience": "https://graph.microsoft.com",
+                        "type": "ManagedServiceIdentity"
+                    },
+                    "method": "GET",
+                    "uri": "https://graph.microsoft.com/v1.0/applications"
+                },
+                "runAfter": {},
+                "type": "Http"
+            },
+            "Initialize_variable": {
+                "inputs": {
+                    "variables": [
+                        {
+                            "name": "CredsNearExpiration",
+                            "type": "array"
+                        }
+                    ]
+                },
+                "runAfter": {
+                    "Parse_JSON": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "InitializeVariable"
+            },
+            "Parse_JSON": {
+                "inputs": {
+                    "content": "@body('HTTP')",
+                    "schema": {
+                        "properties": {
+                            "@@odata.context": {
+                                "type": "string"
+                            },
+                            "value": {
+                                "items": {
+                                    "properties": {
+                                        "addIns": {
+                                            "type": "array"
+                                        },
+                                        "api": {
+                                            "properties": {
+                                                "acceptMappedClaims": {},
+                                                "knownClientApplications": {
+                                                    "type": "array"
+                                                },
+                                                "oauth2PermissionScopes": {
+                                                    "type": "array"
+                                                },
+                                                "preAuthorizedApplications": {
+                                                    "type": "array"
+                                                },
+                                                "requestedAccessTokenVersion": {}
+                                            },
+                                            "type": "object"
+                                        },
+                                        "appId": {
+                                            "type": "string"
+                                        },
+                                        "appRoles": {
+                                            "type": "array"
+                                        },
+                                        "applicationTemplateId": {},
+                                        "createdDateTime": {
+                                            "type": "string"
+                                        },
+                                        "defaultRedirectUri": {},
+                                        "deletedDateTime": {},
+                                        "description": {},
+                                        "displayName": {
+                                            "type": "string"
+                                        },
+                                        "groupMembershipClaims": {},
+                                        "id": {
+                                            "type": "string"
+                                        },
+                                        "identifierUris": {
+                                            "type": "array"
+                                        },
+                                        "info": {
+                                            "properties": {
+                                                "logoUrl": {},
+                                                "marketingUrl": {},
+                                                "privacyStatementUrl": {},
+                                                "supportUrl": {},
+                                                "termsOfServiceUrl": {}
+                                            },
+                                            "type": "object"
+                                        },
+                                        "isDeviceOnlyAuthSupported": {},
+                                        "isFallbackPublicClient": {},
+                                        "keyCredentials": {
+                                            "type": "array"
+                                        },
+                                        "notes": {},
+                                        "optionalClaims": {},
+                                        "parentalControlSettings": {
+                                            "properties": {
+                                                "countriesBlockedForMinors": {
+                                                    "type": "array"
+                                                },
+                                                "legalAgeGroupRule": {
+                                                    "type": "string"
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        "passwordCredentials": {
+                                            "items": {
+                                                "properties": {
+                                                    "customKeyIdentifier": {},
+                                                    "displayName": {
+                                                        "type": "string"
+                                                    },
+                                                    "endDateTime": {
+                                                        "type": "string"
+                                                    },
+                                                    "hint": {
+                                                        "type": "string"
+                                                    },
+                                                    "keyId": {
+                                                        "type": "string"
+                                                    },
+                                                    "secretText": {},
+                                                    "startDateTime": {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "required": [
+                                                    "customKeyIdentifier",
+                                                    "displayName",
+                                                    "endDateTime",
+                                                    "hint",
+                                                    "keyId",
+                                                    "secretText",
+                                                    "startDateTime"
+                                                ],
+                                                "type": "object"
+                                            },
+                                            "type": "array"
+                                        },
+                                        "publicClient": {
+                                            "properties": {
+                                                "redirectUris": {
+                                                    "type": "array"
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        "publisherDomain": {
+                                            "type": "string"
+                                        },
+                                        "requiredResourceAccess": {
+                                            "items": {
+                                                "properties": {
+                                                    "resourceAccess": {
+                                                        "items": {
+                                                            "properties": {
+                                                                "id": {
+                                                                    "type": "string"
+                                                                },
+                                                                "type": {
+                                                                    "type": "string"
+                                                                }
+                                                            },
+                                                            "required": [
+                                                                "id",
+                                                                "type"
+                                                            ],
+                                                            "type": "object"
+                                                        },
+                                                        "type": "array"
+                                                    },
+                                                    "resourceAppId": {
+                                                        "type": "string"
+                                                    }
+                                                },
+                                                "required": [
+                                                    "resourceAppId",
+                                                    "resourceAccess"
+                                                ],
+                                                "type": "object"
+                                            },
+                                            "type": "array"
+                                        },
+                                        "signInAudience": {
+                                            "type": "string"
+                                        },
+                                        "spa": {
+                                            "properties": {
+                                                "redirectUris": {
+                                                    "type": "array"
+                                                }
+                                            },
+                                            "type": "object"
+                                        },
+                                        "tags": {
+                                            "type": "array"
+                                        },
+                                        "tokenEncryptionKeyId": {},
+                                        "verifiedPublisher": {
+                                            "properties": {
+                                                "addedDateTime": {},
+                                                "displayName": {},
+                                                "verifiedPublisherId": {}
+                                            },
+                                            "type": "object"
+                                        },
+                                        "web": {
+                                            "properties": {
+                                                "homePageUrl": {},
+                                                "implicitGrantSettings": {
+                                                    "properties": {
+                                                        "enableAccessTokenIssuance": {
+                                                            "type": "boolean"
+                                                        },
+                                                        "enableIdTokenIssuance": {
+                                                            "type": "boolean"
+                                                        }
+                                                    },
+                                                    "type": "object"
+                                                },
+                                                "logoutUrl": {},
+                                                "redirectUris": {
+                                                    "type": "array"
+                                                }
+                                            },
+                                            "type": "object"
+                                        }
+                                    },
+                                    "required": [
+                                        "id",
+                                        "deletedDateTime",
+                                        "appId",
+                                        "applicationTemplateId",
+                                        "createdDateTime",
+                                        "displayName",
+                                        "description",
+                                        "groupMembershipClaims",
+                                        "identifierUris",
+                                        "isDeviceOnlyAuthSupported",
+                                        "isFallbackPublicClient",
+                                        "notes",
+                                        "optionalClaims",
+                                        "publisherDomain",
+                                        "signInAudience",
+                                        "tags",
+                                        "tokenEncryptionKeyId",
+                                        "verifiedPublisher",
+                                        "defaultRedirectUri",
+                                        "addIns",
+                                        "api",
+                                        "appRoles",
+                                        "info",
+                                        "keyCredentials",
+                                        "parentalControlSettings",
+                                        "passwordCredentials",
+                                        "publicClient",
+                                        "requiredResourceAccess",
+                                        "web",
+                                        "spa"
+                                    ],
+                                    "type": "object"
+                                },
+                                "type": "array"
+                            }
+                        },
+                        "type": "object"
+                    }
+                },
+                "runAfter": {
+                    "HTTP": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "ParseJson"
+            },
+            "Send_an_email_(V2)_2": {
+                "inputs": {
+                    "body": {
+                        "Body": "<p>@{variables('CredsNearExpiration')}</p>",
+                        "Subject": "AAD Credentials Near Expiration",
+                        "To": "fcheung@microsoft.com"
+                    },
+                    "host": {
+                        "connection": {
+                            "name": "@parameters('$connections')['office365']['connectionId']"
+                        }
+                    },
+                    "method": "post",
+                    "path": "/v2/Mail"
+                },
+                "runAfter": {
+                    "For_each_app_registration": [
+                        "Succeeded"
+                    ]
+                },
+                "type": "ApiConnection"
+            }
+        },
+        "contentVersion": "1.0.0.0",
+        "outputs": {},
+        "parameters": {
+            "$connections": {
+                "defaultValue": {},
+                "type": "Object"
+            }
+        },
+        "triggers": {
+            "Recurrence": {
+                "recurrence": {
+                    "frequency": "Day",
+                    "interval": 1
+                },
+                "type": "Recurrence"
+            }
+        }
+    }
+}
