@@ -337,7 +337,7 @@
                     "body": {
                         "Body": "<p>@{variables('CredsNearExpiration')}</p>",
                         "Subject": "AAD Credentials Near Expiration",
-                        "To": "fcheung@microsoft.com"
+                        "To": "recipient@email.com"
                     },
                     "host": {
                         "connection": {
