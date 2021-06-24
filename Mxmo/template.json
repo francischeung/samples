@@ -59,69 +59,53 @@
         "rServicesEnabled": {
             "type": "string",
             "defaultValue": "false"
+        },
+        "sqlServerCount": {
+            "type": "int",
+            "defaultValue": 2
         }
     },
     "variables": {
-        "nsgId": "[resourceId(resourceGroup().name, 'Microsoft.Network/networkSecurityGroups', 'sqlserver-nsg')]",
+        "nsgId": "[resourceId(resourceGroup().name,'Microsoft.Network/networkSecurityGroups', 'subnet-nsg')]",
         "vnetId": "[resourceId(resourceGroup().name,'Microsoft.Network/virtualNetworks', parameters('virtualNetworkName'))]",
         "applicationSubnetRef": "[concat(variables('vnetId'), '/subnets/application-subnet')]",
-        "databaseSubnetRef": "[concat(variables('vnetId'), '/subnets/database-subnet')]",
-        "dataDiskResources": [
-                {
-                    "name": "sqlserver_DataDisk_0",
-                    "sku": "Premium_LRS",
-                    "properties": {
-                        "diskSizeGB": 1024,
-                        "creationData": {
-                            "createOption": "empty"
-                        }
-                    }
-                },
-                {
-                    "name": "sqlserver_DataDisk_1",
-                    "sku": "Premium_LRS",
-                    "properties": {
-                        "diskSizeGB": 1024,
-                        "creationData": {
-                            "createOption": "empty"
-                        }
-                    }
-                }
-            ],
-        "dataDisks": [
-                {
-                    "lun": 0,
-                    "createOption": "attach",
-                    "caching": "ReadOnly",
-                    "writeAcceleratorEnabled": false,
-                    "id": null,
-                    "name": "sqlserver_DataDisk_0",
-                    "storageAccountType": null,
-                    "diskSizeGB": null,
-                    "diskEncryptionSet": null
-                },
-                {
-                    "lun": 1,
-                    "createOption": "attach",
-                    "caching": "None",
-                    "writeAcceleratorEnabled": false,
-                    "id": null,
-                    "name": "sqlserver_DataDisk_1",
-                    "storageAccountType": null,
-                    "diskSizeGB": null,
-                    "diskEncryptionSet": null
-                }
-            ]
+        "databaseSubnetRef": "[concat(variables('vnetId'), '/subnets/database-subnet')]"
     },
     "resources": [
         {
-            "name": "sqlserver-nic",
+            "name": "appserver-nic",
             "type": "Microsoft.Network/networkInterfaces",
             "apiVersion": "2018-10-01",
             "location": "[parameters('location')]",
             "dependsOn": [
                 "[concat('Microsoft.Network/virtualNetworks/', parameters('virtualNetworkName'))]",
-                "[concat('Microsoft.Network/publicIpAddresses/', 'sqlserver-pip')]"
+                "[concat('Microsoft.Network/publicIpAddresses/', 'appserver-pip')]"
+            ],
+            "properties": {
+                "ipConfigurations": [
+                    {
+                        "name": "ipconfig1",
+                        "properties": {
+                            "subnet": {
+                                "id": "[variables('applicationSubnetRef')]"
+                            },
+                            "privateIPAllocationMethod": "Dynamic",
+                            "publicIpAddress": {
+                                "id": "[resourceId(resourceGroup().name, 'Microsoft.Network/publicIpAddresses', 'appserver-pip')]"
+                            }
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            "name": "[concat('sqlserver', copyIndex(),'-nic')]",
+            "type": "Microsoft.Network/networkInterfaces",
+            "apiVersion": "2018-10-01",
+            "location": "[parameters('location')]",
+            "dependsOn": [
+                "[concat('Microsoft.Network/virtualNetworks/', parameters('virtualNetworkName'))]",
+                "[concat('Microsoft.Network/publicIpAddresses/', 'sqlserver', copyIndex(), '-pip')]"
             ],
             "properties": {
                 "ipConfigurations": [
@@ -133,11 +117,15 @@
                             },
                             "privateIPAllocationMethod": "Dynamic",
                             "publicIpAddress": {
-                                "id": "[resourceId(resourceGroup().name, 'Microsoft.Network/publicIpAddresses', 'sqlserver-pip')]"
+                                "id": "[resourceId(resourceGroup().name, 'Microsoft.Network/publicIpAddresses', concat('sqlserver', copyIndex(), '-pip'))]"
                             }
                         }
                     }
                 ]
+            },
+            "copy": {
+                "name": "sqlServerCopy",
+                "count": "[parameters('sqlServerCount')]"
             }
         },
         {
@@ -169,7 +157,7 @@
                     "properties": {
                         "addressPrefix": "172.16.0.0/24",
                         "networkSecurityGroup": {
-                                "id": "[resourceId(resourceGroup().name,'Microsoft.Network/networkSecurityGroups', 'subnet-nsg')]"
+                                "id": "[variables('nsgId')]"
                         }
                     }
                 },
@@ -178,7 +166,7 @@
                     "properties": {
                         "addressPrefix": "172.16.1.0/24",
                         "networkSecurityGroup": {
-                                "id": "[resourceId(resourceGroup().name,'Microsoft.Network/networkSecurityGroups', 'subnet-nsg')]"
+                                "id": "[variables('nsgId')]"
                         }
                     }
                 }
@@ -186,7 +174,7 @@
             }
         },
         {
-            "name": "sqlserver-pip",
+            "name": "appserver-pip",
             "type": "Microsoft.Network/publicIpAddresses",
             "apiVersion": "2019-02-01",
             "location": "[parameters('location')]",
@@ -198,27 +186,66 @@
             }
         },
         {
-            "name": "[variables('dataDiskResources')[copyIndex()].name]",
-            "type": "Microsoft.Compute/disks",
-            "apiVersion": "2020-12-01",
+            "name": "[concat('sqlserver', copyIndex(),'-pip')]",
+            "type": "Microsoft.Network/publicIpAddresses",
+            "apiVersion": "2019-02-01",
             "location": "[parameters('location')]",
-            "properties": "[variables('dataDiskResources')[copyIndex()].properties]",
+            "properties": {
+                "publicIpAllocationMethod": "Dynamic"
+            },
             "sku": {
-                "name": "[variables('dataDiskResources')[copyIndex()].sku]"
+                "name": "Basic"
             },
             "copy": {
-                "name": "managedDiskResources",
-                "count": "[length(variables('dataDiskResources'))]"
+                "name": "sqlServerCopy",
+                "count": "[parameters('sqlServerCount')]"
             }
         },
         {
-            "name": "sqlserver",
+            "name": "[concat('sqlserver', copyIndex(), '_DataDisk_0')]",
+            "type": "Microsoft.Compute/disks",
+            "apiVersion": "2020-12-01",
+            "location": "[parameters('location')]",
+            "properties": {
+                        "diskSizeGB": 1024,
+                        "creationData": {
+                            "createOption": "empty"
+                        }
+            },
+            "sku": {
+                "name": "Premium_LRS"
+            },
+            "copy": {
+                "name": "sqlServerCopy",
+                "count": "[parameters('sqlServerCount')]"
+            }
+        },
+        {
+            "name": "[concat('sqlserver', copyIndex(), '_DataDisk_1')]",
+            "type": "Microsoft.Compute/disks",
+            "apiVersion": "2020-12-01",
+            "location": "[parameters('location')]",
+            "properties": {
+                        "diskSizeGB": 1024,
+                        "creationData": {
+                            "createOption": "empty"
+                        }
+            },
+            "sku": {
+                "name": "Premium_LRS"
+            },
+            "copy": {
+                "name": "sqlServerCopy",
+                "count": "[parameters('sqlServerCount')]"
+            }
+        },
+        {
+            "name": "appserver",
             "type": "Microsoft.Compute/virtualMachines",
             "apiVersion": "2021-03-01",
             "location": "[parameters('location')]",
             "dependsOn": [
-                "managedDiskResources",
-                "[concat('Microsoft.Network/networkInterfaces/', 'sqlserver-nic')]"
+                "[concat('Microsoft.Network/networkInterfaces/', 'appserver-nic')]"
             ],
             "properties": {
                 "hardwareProfile": {
@@ -232,38 +259,21 @@
                         }
                     },
                     "imageReference": {
-                        "publisher": "microsoftsqlserver",
-                        "offer": "sql2019-ws2019",
-                        "sku": "enterprise",
+                        "publisher": "MicrosoftWindowsServer",
+                        "offer": "WindowsServer",
+                        "sku": "2019-Datacenter",
                         "version": "latest"
-                    },
-                    "copy": [
-                        {
-                            "name": "dataDisks",
-                            "count": "[length(variables('dataDisks'))]",
-                            "input": {
-                                "lun": "[variables('dataDisks')[copyIndex('dataDisks')].lun]",
-                                "createOption": "[variables('dataDisks')[copyIndex('dataDisks')].createOption]",
-                                "caching": "[variables('dataDisks')[copyIndex('dataDisks')].caching]",
-                                "diskSizeGB": "[variables('dataDisks')[copyIndex('dataDisks')].diskSizeGB]",
-                                "managedDisk": {
-                                    "id": "[coalesce(variables('dataDisks')[copyIndex('dataDisks')].id, if(equals(variables('dataDisks')[copyIndex('dataDisks')].name, json('null')), json('null'), resourceId('Microsoft.Compute/disks', variables('dataDisks')[copyIndex('dataDisks')].name)))]",
-                                    "storageAccountType": "[variables('dataDisks')[copyIndex('dataDisks')].storageAccountType]"
-                                },
-                                "writeAcceleratorEnabled": "[variables('dataDisks')[copyIndex('dataDisks')].writeAcceleratorEnabled]"
-                            }
-                        }
-                    ]
+                    }
                 },
                 "networkProfile": {
                     "networkInterfaces": [
                         {
-                            "id": "[resourceId('Microsoft.Network/networkInterfaces', 'sqlserver-nic')]"
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces', 'appserver-nic')]"
                         }
                     ]
                 },
                 "osProfile": {
-                    "computerName": "sqlserver",
+                    "computerName": "appserver",
                     "adminUsername": "[parameters('adminUsername')]",
                     "adminPassword": "[parameters('adminPassword')]",
                     "windowsConfiguration": {
@@ -283,15 +293,96 @@
             }
         },
         {
-            "name": "sqlserver",
+            "name": "[concat('sqlserver', copyIndex())]",
+            "type": "Microsoft.Compute/virtualMachines",
+            "apiVersion": "2021-03-01",
+            "location": "[parameters('location')]",
+            "dependsOn": [
+                "[concat('Microsoft.Network/networkInterfaces/', 'sqlserver', copyIndex(), '-nic')]"
+            ],
+            "properties": {
+                "hardwareProfile": {
+                    "vmSize": "[parameters('virtualMachineSize')]"
+                },
+                "storageProfile": {
+                    "osDisk": {
+                        "createOption": "fromImage",
+                        "managedDisk": {
+                            "storageAccountType": "Premium_LRS"
+                        }
+                    },
+                    "imageReference": {
+                        "publisher": "microsoftsqlserver",
+                        "offer": "sql2019-ws2019",
+                        "sku": "enterprise",
+                        "version": "latest"
+                    },
+                    "dataDisks":[
+                        {
+                            "lun": 0,
+                            "createOption": "attach",
+                            "caching": "ReadOnly",
+                            "diskSizeGB": null,
+                            "managedDisk": {
+                                "id": "[resourceId('Microsoft.Compute/disks', concat('sqlserver', copyIndex(), '_DataDisk_0'))]",
+                                "storageAccountType": null
+                            },
+                            "writeAcceleratorEnabled": false                            
+                        },
+                        {
+                            "lun": 1,
+                            "createOption": "attach",
+                            "caching": "None",
+                            "diskSizeGB": null,
+                            "managedDisk": {
+                                "id": "[resourceId('Microsoft.Compute/disks', concat('sqlserver', copyIndex(), '_DataDisk_1'))]",
+                                "storageAccountType": null
+                            },
+                            "writeAcceleratorEnabled": false
+                        }
+                    ]
+                },
+                "networkProfile": {
+                    "networkInterfaces": [
+                        {
+                            "id": "[resourceId('Microsoft.Network/networkInterfaces', concat('sqlserver', copyIndex(), '-nic'))]"
+                        }
+                    ]
+                },
+                "osProfile": {
+                    "computerName": "[concat('sqlserver', copyIndex())]",
+                    "adminUsername": "[parameters('adminUsername')]",
+                    "adminPassword": "[parameters('adminPassword')]",
+                    "windowsConfiguration": {
+                        "enableAutomaticUpdates": true,
+                        "provisionVmAgent": true,
+                        "patchSettings": {
+                            "enableHotpatching": "[parameters('enableHotpatching')]",
+                            "patchMode": "[parameters('patchMode')]"
+                        }
+                    }
+                },
+                "diagnosticsProfile": {
+                    "bootDiagnostics": {
+                        "enabled": true
+                    }
+                }
+            },
+            "copy": {
+                "name": "sqlServerCopy",
+                "count": "[parameters('sqlServerCount')]"
+            }
+        },
+        {
+            "name": "[concat('sqlserver', copyIndex())]",
             "type": "Microsoft.SqlVirtualMachine/SqlVirtualMachines",
             "apiVersion": "2017-03-01-preview",
             "location": "[parameters('location')]",
             "dependsOn": [
-                "[resourceId('Microsoft.Compute/virtualMachines', 'sqlserver')]"
+                "[resourceId('Microsoft.Compute/virtualMachines', concat('sqlserver', copyIndex()))]"
             ],
             "properties": {
-                "virtualMachineResourceId": "[resourceId('Microsoft.Compute/virtualMachines', 'sqlserver')]",
+                "virtualMachineResourceId": "[resourceId('Microsoft.Compute/virtualMachines', concat('sqlserver', copyIndex()))]",
                 "sqlManagement": "Full",
                 "SqlServerLicenseType": "PAYG",
                 "AutoPatchingSettings": {
@@ -330,13 +421,11 @@
                         "IsRServicesEnabled": "[parameters('rServicesEnabled')]"
                     }
                 }
+            },
+            "copy": {
+                "name": "sqlServerCopy",
+                "count": "[parameters('sqlServerCount')]"
             }
         }
-    ],
-    "outputs": {
-        "adminUsername": {
-            "type": "string",
-            "value": "[parameters('adminUsername')]"
-        }
-    }
+    ]
 }
