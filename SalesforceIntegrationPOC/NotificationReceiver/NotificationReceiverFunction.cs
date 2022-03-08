@@ -40,6 +40,8 @@ namespace NotificationReceiver
                                 {
                                     Name = notification["Name"],
                                     ExternalId = notification["Id"]
+                                    
+                                    //Add data mapping here...
                                 };
 
                                 var httpContent = new StringContent(JsonConvert.SerializeObject(lineItemAPIObject));
